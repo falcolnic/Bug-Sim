@@ -6,6 +6,11 @@ body {
 
 canvas {
     display: block;
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 #controlPanel {
@@ -19,7 +24,7 @@ canvas {
     font-family: sans-serif;
     display: flex;
     flex-direction: column;
-    min-width: 220px;
+    min-width: 280px;
     transition: min-height 0.3s ease, padding 0.3s ease, min-width 0.3s ease;
     gap: 10px;
 }
@@ -80,6 +85,37 @@ canvas {
     line-height: 1;
     min-width: 36px;
     text-align: center;
+        transition: background-color 0.1s ease, transform 0.05s ease;
+}
+
+#controlPanel button:not(:disabled):hover {
+    background-color: #686868;
+}
+
+#controlPanel button:not(:disabled):active {
+    background-color: #7a7a7a;
+    transform: translateY(1px);
+}
+
+#controlPanel button:disabled {
+    background-color: #444;
+    color: #888;
+    cursor: not-allowed;
+    transform: none;
+}
+
+#controlPanel #applyBtn:not(:disabled) {
+    background-color: #5a5;
+    color: white;
+}
+
+#controlPanel #applyBtn:not(:disabled):hover {
+    background-color: #7c7;
+}
+
+#controlPanel #applyBtn:not(:disabled):active {
+    background-color: #8d8;
+    transform: translateY(1px); 
 }
 
 .button-group {
@@ -92,7 +128,6 @@ canvas {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 10px;
 }
 
 #controlPanel label {
@@ -115,4 +150,66 @@ canvas {
     min-width: 30px;
     text-align: right;
     font-weight: bold;
+}
+.rules-display-container {
+    margin-top: 10px;
+}
+
+.rules-display-container label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+#rulesDisplay {
+    width: 250px;
+    max-width: 250px;
+    overflow-x: auto;
+    background-color: #222;
+    border: 1px solid #444;
+    padding: 8px;
+    font-family: monospace;
+    font-size: 0.9em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 150px;
+    overflow-y: auto;
+    color: #ddd;
+    outline: none;
+}
+
+#rulesDisplay:focus {
+    border-color: #888;
+    background-color: #282828;
+}
+
+.rule-actions button {
+    font-size: 0.75em;
+    padding: 3px 6px;
+}
+
+.rule-actions {
+    margin-top: 10px;
+    justify-content: flex-start;
+    margin-bottom: 12px;
+}
+
+.main-actions {
+    margin-top: 10px;
+    justify-content: flex-start;
+}
+.input-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.input-container input[type="number"] {
+    width: 60px; 
+    padding: 3px 5px;
+    background-color: #222;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 3px;
 }
