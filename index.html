@@ -3,29 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bug Sim</title>
+    <title>Langton's Ant</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <canvas id="bugCanvas"></canvas>
 
-        <div id="controlPanel">
+    <div id="controlPanel">
         <div class="panel-header">
             <button id="minimizeBtn" title="Minimize Panel">−</button>
             <button id="maximizeBtn" title="Maximize Panel">□</button>
         </div>
         <div class="panel-content">
-            <div class="rules-display-container">
-                <pre id="rulesDisplay" contenteditable="true" spellcheck="false"></pre>
+            <h3 class="panel-title">Turmites</h3>
+            <div class="input-container ant-count-container">
+                <label for="antCountInput">Ants:</label>
+                <input type="number" id="antCountInput" min="1" max="1024" value="1" title="Number of ants (1-1024)">
             </div>
-            <div class="input-container bug-count-container">
-                <label for="bugCountInput">Bugs:</label>
-                <input type="number" id="bugCountInput" min="1" max="1024" value="10" title="Number of bugs (1-1024)">
+            <div class="input-container individual-rules-container">
+                <label for="individualRulesCheck">Individual Rules</label>
+                <input type="checkbox" id="individualRulesCheck" disabled>
+            </div>
+            <div class="rules-display-container">
+                <div class="rule-label-container">
+                    <label for="rulesDisplay">Rule:</label>
+                    <button id="editRuleBtn" title="Edit Rule">✎</button>
+                </div>
+                <pre id="rulesDisplay" class="hidden" contenteditable="true" spellcheck="false"></pre>
+            </div>
+            <div class="input-container start-position-container">
+                <label for="startPositionSelect">Start Pos:</label>
+                <select id="startPositionSelect" title="Ant starting positions">
+                    <option value="center" selected>Center</option>
+                    <option value="random">Random</option>
+                    <option value="grid">Grid</option>
+                </select>
+            </div>
+            <div class="input-container random-params-container">
+                <label for="possibleStatesInput">Max States:</label>
+                <input type="number" id="possibleStatesInput" min="1" max="100" value="5" title="Max states for random rules (1-100)">
+            </div>
+            <div class="input-container random-params-container">
+                <label for="possibleColorsInput">Max Colors:</label>
+                <input type="number" id="possibleColorsInput" min="2" max="10" value="5" title="Max colors for random rules (2-10)">
             </div>
             <div class="button-group rule-actions">
                 <button id="randomizeBtn" title="Randomize Rules (R)">Randomize</button>
                 <button id="applyBtn" title="Apply Ruleset Changes" disabled>Apply Changes</button>
             </div>
+            <hr class="control-separator">
             <div class="slider-container">
                 <label for="simSpeedSlider">Steps/Sec:</label>
                 <input type="range" id="simSpeedSlider" min="1" max="100" value="50" title="Target simulation steps per second (50=60, >50 exponential)">
@@ -41,4 +67,4 @@
 
     <script src="script.js"></script>
 </body>
-</html>
+</html> 
