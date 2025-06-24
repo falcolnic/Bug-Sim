@@ -47,3 +47,4 @@
 - Use Reset View to center the ant periodically
 - Zoom out to see large-scale patterns
 - Increase speed to observe long-term behavior
+![image](https://github.com/user-attachments/assets/372a1247-8212-4321-b665-73e256809823)
