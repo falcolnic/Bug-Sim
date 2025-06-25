@@ -1,4 +1,4 @@
-const canvas = document.getElementById('bugCanvas');
+const canvas = document.getElementById('antCanvas');
 const ctx = canvas.getContext('2d');
 
 let width, height;
@@ -51,15 +51,20 @@ const cellColors = [
     '#FF0000',
     '#FFA500',
     '#0000FF',
-    '#FF69B4'
+    '#FF69B4',
+    '#DA70D6',
+    '#8A2BE2'
 ];
 const maxPossibleColors = cellColors.length;
 
 let rules = {};
 
+let lastAppliedState = {};
+
 function generateRandomRules(numStates, numColorsToUse) {
     const newRules = {};
-    const moveOptions = ['L', 'R', 'N', 'U'];
+    const moveOptions = ['L', 'R', 'N', 'U', 'S'];
+
     for (let s = 0; s < numStates; s++) {
         newRules[s] = [];
         for (let c = 0; c < numColorsToUse; c++) {
@@ -75,7 +80,7 @@ function generateRandomRules(numStates, numColorsToUse) {
 
 function generateRandomRulesForAnt(numStates, numColorsToUse) {
     const antSpecificRules = {};
-    const moveOptions = ['L', 'R', 'N', 'U'];
+    const moveOptions = ['L', 'R', 'N', 'U', 'S'];
     for (let s = 0; s < numStates; s++) {
         antSpecificRules[s] = [];
         for (let c = 0; c < numColorsToUse; c++) {
@@ -100,6 +105,7 @@ function mapSliderToSpeed(sliderValue) {
     const sliderMin = 1;
     const sliderMax = 100;
     const sliderMid = 50;
+
     if (sliderValue == sliderMid) {
         return midSimSpeed;
     } else if (sliderValue < sliderMid) {
@@ -138,6 +144,7 @@ function setCanvasSmoothing(enabled) {
 function initGrid() {
     gridCols = Math.ceil(width / scale);
     gridRows = Math.ceil(height / scale);
+
     if (gridCols <= 0 || gridRows <= 0) {
         gridCols = 1; gridRows = 1;
     }
@@ -145,57 +152,49 @@ function initGrid() {
     grid = Array(gridRows).fill(null).map(() => Array(gridCols).fill(defaultColorIndex));
 }
 
-function updateIndividualRulesVisibility(antCount, rulesDisplayContainer, individualRulesContainer, individualRulesCheck, applyBtn) {
+function updateIndividualRulesVisibility(antCount, rulesDisplayContainer, individualRulesContainer, individualRulesCheck, rulesDisplayPre) {
     const showIndividualOption = antCount > 1;
-    let mainRuleShouldBeVisible = true;
-    let mainRuleDisplayNeedsUpdate = false;
     if (individualRulesContainer) {
         individualRulesContainer.classList.toggle('hidden', !showIndividualOption);
     }
+    let isIndividualChecked = false;
     if (individualRulesCheck) {
-        const wasChecked = individualRulesCheck.checked;
         individualRulesCheck.disabled = !showIndividualOption;
-        if (!showIndividualOption && wasChecked) {
+        if (!showIndividualOption && individualRulesCheck.checked) {
             individualRulesCheck.checked = false;
-            mainRuleShouldBeVisible = true;
-            mainRuleDisplayNeedsUpdate = true;
-            if(applyBtn) applyBtn.disabled = false;
-        } else if (showIndividualOption && wasChecked) {
-            mainRuleShouldBeVisible = false;
+            const applyBtn = document.getElementById('applyBtn');
+            if (applyBtn) applyBtn.disabled = false;
         }
-    } else {
-        mainRuleShouldBeVisible = true;
+        isIndividualChecked = individualRulesCheck.checked;
     }
     if (rulesDisplayContainer) {
-        const wasHidden = rulesDisplayContainer.classList.contains('hidden');
-        rulesDisplayContainer.classList.toggle('hidden', !mainRuleShouldBeVisible);
-        if (mainRuleShouldBeVisible && wasHidden) {
-            const rulesDisplay = document.getElementById('rulesDisplay');
-            if (rulesDisplay) {
-                const sourceRules = (ants.length > 0 && ants[0].individualRule) ? ants[0].individualRule : rules;
-                const numStatesInRules = Object.keys(sourceRules).length;
-                const numColorsInRules = sourceRules[0] ? sourceRules[0].length : 0;
-                let rulesString = `// States: ${numStatesInRules}\n`;
-                rulesString += `// Colors: ${numColorsInRules}\n`;
-                rulesString += `// Moves: L:Left, R:Right, N:None, U:U-Turn\n\n`;
-                try { rulesString += JSON.stringify(sourceRules, null, 2); } catch (e) { rulesString = "Error stringifying rules.";}
-                rulesDisplay.textContent = rulesString;
-            }
-        }
+        rulesDisplayContainer.classList.toggle('hidden', isIndividualChecked);
+    }
+    if (rulesDisplayPre && isIndividualChecked) {
+        rulesDisplayPre.classList.add('hidden');
     }
 }
 
-function initAnts() {
+function initAnts(preservedIndividualRules = null) {
     ants = [];
     cellsToUpdate.clear();
     if (gridCols <= 0 || gridRows <= 0) { return; }
+
     const antCountInput = document.getElementById('antCountInput');
     const startPositionSelect = document.getElementById('startPositionSelect');
+    const startDirectionSelect = document.getElementById('startDirectionSelect');
     const individualRulesCheck = document.getElementById('individualRulesCheck');
+    const rulesDisplayPre = document.getElementById('rulesDisplay');
+    const saveRuleBtn = document.getElementById('saveRuleBtn');
+    const loadRuleBtn = document.getElementById('loadRuleBtn');
+    const presetSelect = document.getElementById('presetSelect');
+
     const startMode = startPositionSelect ? startPositionSelect.value : 'center';
+    const startDirMode = startDirectionSelect ? startDirectionSelect.value : '0';
     const numAntsToCreate = antCountInput ? parseInt(antCountInput.value, 10) : 1;
     const validatedAntCount = Math.max(1, Math.min(1024, numAntsToCreate || 1));
     const useIndividualRules = individualRulesCheck ? individualRulesCheck.checked && validatedAntCount > 1 : false;
+
     const possibleStatesInput = document.getElementById('possibleStatesInput');
     const possibleColorsInput = document.getElementById('possibleColorsInput');
     const maxStates = possibleStatesInput ? parseInt(possibleStatesInput.value, 10) : 2;
@@ -216,6 +215,8 @@ function initAnts() {
                     gridY = Math.floor(Math.random() * gridRows);
                     attempts++;
                 } while (occupied.has(`${gridX},${gridY}`) && attempts < MAX_ATTEMPTS);
+                if (attempts >= MAX_ATTEMPTS) {
+                }
                 break;
             case 'grid':
                 const gridRatio = gridCols / gridRows;
@@ -245,6 +246,18 @@ function initAnts() {
                     attempts++;
                 }
                 break;
+            case 'row':
+                const rowWidth = Math.min(validatedAntCount, gridCols);
+                const numRows = Math.ceil(validatedAntCount / gridCols);
+                const startX = Math.floor(centerX - rowWidth / 2);
+                const startY = Math.floor(centerY - numRows / 2);
+                const colOffset = i % gridCols;
+                const rowOffset = Math.floor(i / gridCols);
+                gridX = startX + colOffset;
+                gridY = startY + rowOffset;
+                if (occupied.has(`${gridX},${gridY}`)) {
+                }
+                break;
             case 'center':
             default:
                 const clusterSize = Math.ceil(Math.sqrt(validatedAntCount));
@@ -255,15 +268,30 @@ function initAnts() {
                 gridY = Math.max(0, Math.min(gridRows - 1, gridY));
                 break;
         }
+        gridX = Math.max(0, Math.min(gridCols - 1, gridX || 0));
+        gridY = Math.max(0, Math.min(gridRows - 1, gridY || 0));
         occupied.add(`${gridX},${gridY}`);
         let individualRule = null;
         if (useIndividualRules) {
-            const antStates = Math.floor(Math.random() * validatedMaxStates) + 1;
-            const antColors = Math.floor(Math.random() * (validatedMaxColors - 1)) + 2;
-            individualRule = generateRandomRulesForAnt(antStates, antColors);
+            if (preservedIndividualRules && i < preservedIndividualRules.length && preservedIndividualRules[i]) {
+                individualRule = preservedIndividualRules[i];
+            } else {
+                const antStates = Math.floor(Math.random() * validatedMaxStates) + 1;
+                const antColors = Math.floor(Math.random() * (validatedMaxColors - 1)) + 2;
+                individualRule = generateRandomRulesForAnt(antStates, antColors);
+            }
+        }
+        let initialDir = 0;
+        if (startDirMode === 'random') {
+            initialDir = Math.floor(Math.random() * 4);
+        } else {
+            const dirValue = parseInt(startDirMode, 10);
+            if (!isNaN(dirValue) && dirValue >= 0 && dirValue < 4) {initialDir = dirValue;}
         }
         const newAnt = {
-            x: gridX, y: gridY, dir: 0, state: 0,
+            x: gridX, y: gridY,
+            dir: initialDir,
+            state: 0,
             individualRule: individualRule
         };
         ants.push(newAnt);
@@ -283,7 +311,6 @@ function resetCamera() {
     cellsToUpdate.clear();
     needsFullRedraw = true;
 }
-
 function initSimulation(randomize = false, numStates = 1, numColorsToUse = 2, wasRunning = true) {
     stopSimulationLoop();
     stopRenderLoop();
@@ -291,6 +318,10 @@ function initSimulation(randomize = false, numStates = 1, numColorsToUse = 2, wa
     const useIndividual = individualRulesCheck ? individualRulesCheck.checked : false;
     const antCountInput = document.getElementById('antCountInput');
     const antCount = antCountInput ? parseInt(antCountInput.value, 10) : 1;
+    let preservedIndividualRules = null;
+    if (!randomize && useIndividual && antCount > 0 && ants.length > 0) {
+        preservedIndividualRules = ants.map(ant => ant?.individualRule).filter(rule => rule);
+    }
     if (randomize) {
         generateRandomRules(numStates, numColorsToUse);
     }
@@ -310,7 +341,7 @@ function initSimulation(randomize = false, numStates = 1, numColorsToUse = 2, wa
     const originalScale = scale;
     scale = initialScale;
     initGrid();
-    initAnts();
+    initAnts(preservedIndividualRules);
     scale = originalScale;
     const simSpeedSlider = document.getElementById('simSpeedSlider');
     const simSpeedValueSpan = document.getElementById('simSpeedValue');
@@ -321,14 +352,17 @@ function initSimulation(randomize = false, numStates = 1, numColorsToUse = 2, wa
     const initialSimSpeed = mapSliderToSpeed(initialSliderValue);
     simSpeedSlider.value = initialSliderValue;
     simSpeedValueSpan.textContent = Math.round(initialSimSpeed);
+
     const numStatesInRules = Object.keys(rules).length;
     const numColorsInRules = rules[0] ? rules[0].length : 0;
     let rulesString = `// States: ${numStatesInRules}\n`;
     rulesString += `// Colors: ${numColorsInRules}\n`;
-    rulesString += `// Moves: L:Left, R:Right, N:None, U:U-Turn\n\n`;
-    try { rulesString += JSON.stringify(rules, null, 2); } catch (e) { }
+    rulesString += `// Moves: L:Left, R:Right, N:None, U:U-Turn, S:Stay\n\n`;
+    try { rulesString += JSON.stringify(rules, null, 2); } catch (e) { rulesString = "Error stringifying rules.";}
     if (rulesDisplay) rulesDisplay.textContent = rulesString;
     if (applyBtn) applyBtn.disabled = true;
+    const discardBtn = document.getElementById('discardBtn');
+    if (discardBtn) discardBtn.disabled = true;
     setCanvasSmoothing(false);
     cellsToUpdate.clear();
     needsFullRedraw = true;
@@ -340,22 +374,32 @@ function initSimulation(randomize = false, numStates = 1, numColorsToUse = 2, wa
         individualRulesCheck.disabled = (antCount <= 1);
         if (antCount <= 1 && individualRulesCheck.checked) {
             individualRulesCheck.checked = false;
-            if (rulesDisplay) rulesDisplay.classList.remove('hidden');
         }
     }
-    if (rulesDisplay) {
-        if (useIndividual && antCount > 1) {
-            rulesDisplay.classList.add('hidden');
-        } else {
-            rulesDisplay.classList.remove('hidden');
-        }
-    }
+
     if (isRunning) {
         startSimulationLoop();
         startRenderLoop();
     }
-}
 
+    const currentAntCount = antCountInput ? antCountInput.value : '1';
+    const currentStartPosition = startPositionSelect ? startPositionSelect.value : 'center';
+    const currentStartDirection = startDirectionSelect ? startDirectionSelect.value : '0';
+    const currentMaxStates = possibleStatesInput ? possibleStatesInput.value : '2';
+    const currentMaxColors = possibleColorsInput ? possibleColorsInput.value : '2';
+    const currentIndividualChecked = individualRulesCheck ? individualRulesCheck.checked : false;
+    const currentRulesText = rulesDisplay ? rulesDisplay.textContent : '';
+
+    lastAppliedState = {
+        antCount: currentAntCount,
+        startPosition: currentStartPosition,
+        startDirection: currentStartDirection,
+        maxStates: currentMaxStates,
+        maxColors: currentMaxColors,
+        individualChecked: currentIndividualChecked,
+        rulesText: currentRulesText
+    };
+}
 function startSimulation() {
     stopSimulation();
     if (currentIntervalId || timeoutId) { return; }
@@ -388,7 +432,6 @@ function stopSimulation() {
         timeoutId = null;
     }
 }
-
 function updateButtonText() {
     const btn = document.getElementById('startStopBtn');
     if (btn) btn.innerHTML = isRunning ? '❚❚' : '▶';
@@ -408,29 +451,42 @@ function stepSingleAntLogic(ant) {
     const currentState = ant.state;
     const ruleSetToUse = ant.individualRule || rules;
     let rule;
-    if (ruleSetToUse[currentState] && ruleSetToUse[currentState][currentCellColor]) {
-        rule = ruleSetToUse[currentState][currentCellColor];
-    } else {
-        if (ruleSetToUse[currentState] && ruleSetToUse[currentState][0]) {
-            rule = ruleSetToUse[currentState][0];
+    try {
+        if (ruleSetToUse[currentState] && ruleSetToUse[currentState][currentCellColor]) {
+            rule = ruleSetToUse[currentState][currentCellColor];
         } else {
-            rule = { writeColor: currentCellColor, move: 'N', nextState: 0 };
+            if (ruleSetToUse[currentState] && ruleSetToUse[currentState][0]) {
+                rule = ruleSetToUse[currentState][0];
+            } else {
+                rule = { writeColor: currentCellColor, move: 'N', nextState: 0 };
+            }
         }
+    } catch (e) {
+        return;
     }
+
     if (rule.writeColor !== currentCellColor) {
         grid[currentCellY][currentCellX] = rule.writeColor;
         cellsToUpdate.add(`${currentCellX},${currentCellY}`);
     }
+    let dx = 0, dy = 0;
     switch (rule.move) {
         case 'R': ant.dir = (ant.dir + 1) % 4; break;
         case 'L': ant.dir = (ant.dir - 1 + 4) % 4; break;
         case 'U': ant.dir = (ant.dir + 2) % 4; break;
+        case 'S': break;
         case 'N': default: break;
     }
+    if (rule.move !== 'S') {
+        const moveOffset = directions[ant.dir];
+        if (moveOffset) {
+            dx = moveOffset.dx;
+            dy = moveOffset.dy;
+        }
+    }
     ant.state = rule.nextState;
-    const moveOffset = directions[ant.dir];
-    ant.x += moveOffset.dx;
-    ant.y += moveOffset.dy;
+    ant.x += dx;
+    ant.y += dy;
 }
 
 function runSimulationTick() {
@@ -456,7 +512,22 @@ function runMaxSpeedLoop() {
     requestAnimationFrame(draw);
     timeoutId = setTimeout(runMaxSpeedLoop, 0);
 }
-
+function drawAntShape(ant) {
+    if (ant.x < 0 || ant.x >= gridCols || ant.y < 0 || ant.y >= gridRows) return;
+    const cellSize = 1;
+    const antCenterX = offsetX + (ant.x + 0.5) * cellSize * scale;
+    const antCenterY = offsetY + (ant.y + 0.5) * cellSize * scale;
+    const antSize = (cellSize * scale) * 0.8;
+    const antRadius = antSize / 2.5;
+    if (!(antCenterX + antSize > 0 && antCenterX - antSize < width &&
+        antCenterY + antSize > 0 && antCenterY - antSize < height)) {
+        return;
+    }
+    ctx.fillStyle = 'red';
+    ctx.beginPath();
+    ctx.arc(antCenterX, antCenterY, antRadius, 0, 2 * Math.PI);
+    ctx.fill();
+}
 function drawGrid() {
     if (!grid || !grid.length || !grid[0].length || !ctx) return;
     setCanvasSmoothing(false);
@@ -488,18 +559,7 @@ function drawGrid() {
     }
     setCanvasSmoothing(true);
     for (let i = 0; i < ants.length; i++) {
-        const ant = ants[i];
-        if (!ant) continue;
-        if (ant.x < 0 || ant.x >= gridCols || ant.y < 0 || ant.y >= gridRows) {
-            continue;
-        }
-        const antCenterX = offsetX + (ant.x + 0.5) * cellSize * scale;
-        const antCenterY = offsetY + (ant.y + 0.5) * cellSize * scale;
-        const antRadius = (cellSize / 2.5) * scale;
-        if (antCenterX + antRadius > 0 && antCenterX - antRadius < width &&
-            antCenterY + antRadius > 0 && antCenterY - antRadius < height) {
-            ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(antCenterX, antCenterY, antRadius, 0, 2 * Math.PI); ctx.fill();
-        }
+        if (ants[i]) drawAntShape(ants[i]);
     }
     setCanvasSmoothing(false);
 }
@@ -527,28 +587,15 @@ function drawUpdates() {
     });
     setCanvasSmoothing(true);
     for (let i = 0; i < ants.length; i++) {
-        const ant = ants[i];
-        if (!ant) continue;
-        if (ant.x < 0 || ant.x >= gridCols || ant.y < 0 || ant.y >= gridRows) {
-            continue;
-        }
-        const antCenterX = offsetX + (ant.x + 0.5) * cellSize * scale;
-        const antCenterY = offsetY + (ant.y + 0.5) * cellSize * scale;
-        const antRadius = (cellSize / 2.5) * scale;
-        if (antCenterX + antRadius > 0 && antCenterX - antRadius < width &&
-            antCenterY + antRadius > 0 && antCenterY - antRadius < height)
-        {
-            ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(antCenterX, antCenterY, antRadius, 0, 2 * Math.PI); ctx.fill();
-        }
+        if (ants[i]) drawAntShape(ants[i]);
     }
     setCanvasSmoothing(false);
     cellsToUpdate.clear();
 }
-
 function draw() {
     if (!ctx) return;
     if (needsFullRedraw) {
-        ctx.fillStyle = '#555555';
+        ctx.fillStyle = '#222222';
         ctx.fillRect(0, 0, width, height);
         drawGrid();
         needsFullRedraw = false;
@@ -567,9 +614,7 @@ function handleZoom(event) {
     let newScale;
     if (event.deltaY < 0) {
         newScale = Math.min(maxScale, scale * zoomFactor);
-    } else {
-        newScale = Math.max(minScale, scale / zoomFactor);
-    }
+    } else {newScale = Math.max(minScale, scale / zoomFactor);}
     offsetX = mouseX - worldX * newScale;
     offsetY = mouseY - worldY * newScale;
     scale = newScale;
@@ -585,7 +630,6 @@ function handleMouseDown(event) {
     lastMouseY = event.clientY - rect.top;
     canvas.style.cursor = 'grabbing';
 }
-
 function handleMouseUp(event) {
     if (isDragging) {
         isDragging = false;
@@ -622,14 +666,16 @@ window.addEventListener('keydown', (event) => {
         const btn = document.getElementById('startStopBtn');
         if (btn) btn.click();
     }
-    else if (event.key === 'r' || event.key === 'R') {
+    else if (event.key === 'f' || event.key === 'F') {
         const btn = document.getElementById('randomizeBtn');
         if (btn) btn.click();
     }
+    else if (event.key === 'r' || event.key === 'R') {
+        const btn = document.getElementById('resetBtn');
+        if (btn) btn.click();
+    }
 });
-
 document.addEventListener('DOMContentLoaded', () => {
-    if (!ctx) { return; }
     const simSpeedSlider = document.getElementById('simSpeedSlider');
     const simSpeedValueSpan = document.getElementById('simSpeedValue');
     const startStopBtn = document.getElementById('startStopBtn');
@@ -650,12 +696,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const individualRulesContainer = document.querySelector('.individual-rules-container');
     const editRuleBtn = document.getElementById('editRuleBtn');
     const ruleLabel = document.querySelector('.rules-display-container label');
-    if (!simSpeedSlider || !simSpeedValueSpan || !startStopBtn || !resetBtn || !resetViewBtn || !minimizeBtn || !maximizeBtn || !controlPanel || !rulesDisplay || !applyBtn || !randomizeBtn || !antCountInput || !startPositionSelect || !possibleStatesInput || !possibleColorsInput || !rulesDisplayContainer || !individualRulesCheck || !individualRulesContainer || !editRuleBtn || !ruleLabel) {
+    const startDirectionSelect = document.getElementById('startDirectionSelect');
+    const rulesDisplayPre = document.getElementById('rulesDisplay');
+    const saveRuleBtn = document.getElementById('saveRuleBtn');
+    const loadRuleBtn = document.getElementById('loadRuleBtn');
+    const discardBtn = document.getElementById('discardBtn');
+    const presetSelect = document.getElementById('presetSelect');
+
+    if (!simSpeedSlider || !simSpeedValueSpan || !startStopBtn || !resetBtn || !resetViewBtn || !minimizeBtn || !maximizeBtn || !controlPanel || !rulesDisplay || !applyBtn || !randomizeBtn || !antCountInput || !startPositionSelect || !possibleStatesInput || !possibleColorsInput || !rulesDisplayContainer || !individualRulesCheck || !individualRulesContainer || !editRuleBtn || !ruleLabel || !startDirectionSelect || !rulesDisplayPre || !saveRuleBtn || !loadRuleBtn || !discardBtn || !presetSelect) {
         return;
     }
-    if (antCountInput && rulesDisplayContainer && individualRulesContainer && individualRulesCheck && applyBtn && rulesDisplay) {
-        updateIndividualRulesVisibility( parseInt(antCountInput.value, 10) || 0, rulesDisplayContainer, individualRulesContainer, individualRulesCheck, applyBtn );
-        rulesDisplay.classList.add('hidden');
+
+    if (antCountInput && rulesDisplayContainer && individualRulesContainer && individualRulesCheck && rulesDisplayPre) {
+        updateIndividualRulesVisibility(
+            parseInt(antCountInput.value, 10) || 0,
+            rulesDisplayContainer,
+            individualRulesContainer,
+            individualRulesCheck,
+            rulesDisplayPre
+        );
     }
     startStopBtn.addEventListener('click', () => {
         if (isRunning) {
@@ -673,6 +732,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentState = isRunning;
         initSimulation(false, undefined, undefined, currentState);
         if (applyBtn) applyBtn.disabled = true;
+        const discardBtn = document.getElementById('discardBtn');
+        if (discardBtn) discardBtn.disabled = true;
+        if (antCountInput && rulesDisplayContainer && individualRulesContainer && individualRulesCheck && rulesDisplayPre) {
+            updateIndividualRulesVisibility(
+                parseInt(antCountInput.value, 10) || 0,
+                rulesDisplayContainer,
+                individualRulesContainer,
+                individualRulesCheck,
+                rulesDisplayPre
+            );
+        }
     });
     resetViewBtn.addEventListener('click', resetCamera);
     minimizeBtn.addEventListener('click', () => {
@@ -696,15 +766,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (currentVal > maxVal) antCountInput.value = maxVal;
             }
             const currentCount = parseInt(antCountInput.value, 10) || 0;
-            updateIndividualRulesVisibility(currentCount, rulesDisplayContainer, individualRulesContainer, individualRulesCheck, applyBtn);
-            if (applyBtn) applyBtn.disabled = false;
-            if (currentCount <= 1 && rulesDisplay && !rulesDisplay.classList.contains('hidden')) {
-                rulesDisplay.classList.add('hidden');
+            if (rulesDisplayContainer && individualRulesContainer && individualRulesCheck && rulesDisplayPre) {
+                updateIndividualRulesVisibility(currentCount, rulesDisplayContainer, individualRulesContainer, individualRulesCheck, rulesDisplayPre);
             }
+            if (applyBtn) applyBtn.disabled = false;
+            const discardBtn = document.getElementById('discardBtn');
+            if (discardBtn) discardBtn.disabled = false;
+            if (presetSelect) presetSelect.value = 'custom';
         });
     }
     rulesDisplay.addEventListener('input', () => {
         if (applyBtn) applyBtn.disabled = false;
+        const discardBtn = document.getElementById('discardBtn');
+        if (discardBtn) discardBtn.disabled = false;
+        if (presetSelect) presetSelect.value = 'custom';
     });
     if (individualRulesCheck) {
         individualRulesCheck.addEventListener('change', () => {
@@ -713,12 +788,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 rulesDisplayContainer,
                 individualRulesContainer,
                 individualRulesCheck,
-                applyBtn
+                rulesDisplayPre
             );
-            if (rulesDisplay && individualRulesCheck.checked) {
-                rulesDisplay.classList.add('hidden');
-            }
             if (applyBtn) applyBtn.disabled = false;
+            const discardBtn = document.getElementById('discardBtn');
+            if (discardBtn) discardBtn.disabled = false;
+            if (presetSelect) presetSelect.value = 'custom';
         });
     }
     if (applyBtn) {
@@ -740,8 +815,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             applyBtn.disabled = true;
+            const discardBtn = document.getElementById('discardBtn');
+            if (discardBtn) discardBtn.disabled = true;
             const currentState = isRunning;
             initSimulation(false, undefined, undefined, currentState);
+            if (antCountInput && rulesDisplayContainer && individualRulesContainer && individualRulesCheck && rulesDisplayPre) {
+                updateIndividualRulesVisibility(
+                    parseInt(antCountInput.value, 10) || 0,
+                    rulesDisplayContainer,
+                    individualRulesContainer,
+                    individualRulesCheck,
+                    rulesDisplayPre
+                );
+            }
         });
     }
     if (randomizeBtn) {
@@ -749,19 +835,43 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentState = isRunning;
             const maxStates = possibleStatesInput ? parseInt(possibleStatesInput.value, 10) : 2;
             const maxColors = possibleColorsInput ? parseInt(possibleColorsInput.value, 10) : 2;
-            const validatedMaxStates = Math.max(1, Math.min(100, maxStates || 1));
+            const validatedMaxStates = Math.max(1, Math.min(1000, maxStates || 1));
             const validatedMaxColors = Math.max(2, Math.min(maxPossibleColors, maxColors || 2));
             const randomStates = Math.floor(Math.random() * validatedMaxStates) + 1;
             const randomColors = Math.floor(Math.random() * (validatedMaxColors - 1)) + 2;
             initSimulation(true, randomStates, randomColors, currentState);
             if (applyBtn) applyBtn.disabled = true;
+            const discardBtn = document.getElementById('discardBtn');
+            if (discardBtn) discardBtn.disabled = true;
+            if (antCountInput && rulesDisplayContainer && individualRulesContainer && individualRulesCheck && rulesDisplayPre) {
+                updateIndividualRulesVisibility(
+                    parseInt(antCountInput.value, 10) || 0,
+                    rulesDisplayContainer,
+                    individualRulesContainer,
+                    individualRulesCheck,
+                    rulesDisplayPre
+                );
+            }
         });
     }
     if (startPositionSelect) {
         startPositionSelect.addEventListener('input', () => {
             if (applyBtn) applyBtn.disabled = false;
+            const discardBtn = document.getElementById('discardBtn');
+            if (discardBtn) discardBtn.disabled = false;
+            if (presetSelect) presetSelect.value = 'custom';
         });
     }
+
+    if (startDirectionSelect) {
+        startDirectionSelect.addEventListener('input', () => {
+            if (applyBtn) applyBtn.disabled = false;
+            const discardBtn = document.getElementById('discardBtn');
+            if (discardBtn) discardBtn.disabled = false;
+            if (presetSelect) presetSelect.value = 'custom';
+        });
+    }
+
     if (canvas) {
         canvas.addEventListener('wheel', handleZoom);
         canvas.addEventListener('mousedown', handleMouseDown);
@@ -770,19 +880,198 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.addEventListener('mouseleave', handleMouseLeave);
         canvas.style.cursor = 'grab';
     }
+
     if (possibleColorsInput) possibleColorsInput.max = maxPossibleColors;
+
     const toggleRuleEditor = () => {
-        if (rulesDisplay && !individualRulesCheck.checked) {
-            rulesDisplay.classList.toggle('hidden');
+        const rulesEditorPre = document.getElementById('rulesDisplay');
+        if (rulesEditorPre && !individualRulesCheck.checked) {
+            rulesEditorPre.classList.toggle('hidden');
         }
     };
     if (editRuleBtn) {
         editRuleBtn.addEventListener('click', toggleRuleEditor);
     }
-    if (ruleLabel) {
-        ruleLabel.addEventListener('click', toggleRuleEditor);
+
+    if (possibleStatesInput) {
+        possibleStatesInput.addEventListener('input', () => {
+            const input = possibleStatesInput;
+            const currentVal = parseInt(input.value, 10);
+            const minVal = parseInt(input.min, 10);
+            const maxVal = parseInt(input.max, 10);
+            if (!isNaN(currentVal)) {
+                if (currentVal < minVal) input.value = minVal;
+                else if (currentVal > maxVal) input.value = maxVal;
+            }
+            if (applyBtn) applyBtn.disabled = false;
+            const discardBtn = document.getElementById('discardBtn');
+            if (discardBtn) discardBtn.disabled = false;
+            if (presetSelect) presetSelect.value = 'custom';
+        });
+    }
+
+    if (possibleColorsInput) {
+        possibleColorsInput.addEventListener('input', () => {
+            const input = possibleColorsInput;
+            const currentVal = parseInt(input.value, 10);
+            const minVal = parseInt(input.min, 10);
+            const maxVal = parseInt(input.max, 10);
+            if (!isNaN(currentVal)) {
+                if (currentVal < minVal) input.value = minVal;
+                else if (currentVal > maxVal) input.value = maxVal;
+            }
+            if (applyBtn) applyBtn.disabled = false;
+            const discardBtn = document.getElementById('discardBtn');
+            if (discardBtn) discardBtn.disabled = false;
+            if (presetSelect) presetSelect.value = 'custom';
+        });
+    }
+
+    if (saveRuleBtn) {
+        saveRuleBtn.addEventListener('click', () => {
+            const rulesEditor = document.getElementById('rulesDisplay');
+            if (!rulesEditor) return;
+            let rulesText = rulesEditor.textContent || "";
+            const rulesWithoutComments = rulesText.replace(/^\s*\/\/.*$/gm, '').trim();
+            if (!rulesWithoutComments) {
+                alert("Rule editor is empty or contains only comments. Nothing to save.");
+                return;
+            }
+            try {
+                const parsedRules = JSON.parse(rulesWithoutComments);
+                const jsonString = JSON.stringify(parsedRules, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'turmite_rule.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert(`Could not save rule. The content (after removing comments) is not valid JSON:\n\n${e.message}`);
+            }
+        });
+    }
+
+    if (loadRuleBtn) {
+        loadRuleBtn.addEventListener('click', () => {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.json,application/json';
+            fileInput.style.display = 'none';
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files ? event.target.files[0] : null;
+                if (!file) {
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const content = e.target?.result;
+                    const rulesEditor = document.getElementById('rulesDisplay');
+                    const applyBtn = document.getElementById('applyBtn');
+                    const discardBtn = document.getElementById('discardBtn');
+                    if (!rulesEditor || !applyBtn || !discardBtn) return;
+                    try {
+                        if (typeof content !== 'string') {
+                            throw new Error("Failed to read file content as text.");
+                        }
+                        const parsedRules = JSON.parse(content);
+                        if (typeof parsedRules !== 'object' || parsedRules === null || Array.isArray(parsedRules)) {
+                            throw new Error("Loaded JSON is not a valid rule object.");
+                        }
+                        const numStates = Object.keys(parsedRules).length;
+                        const numColors = parsedRules[0] ? parsedRules[0].length : 0;
+                        let rulesString = "";
+                        rulesString += `// States: ${numStates}\n`;
+                        rulesString += `// Colors: ${numColors}\n`;
+                        rulesString += `// Moves: L:Left, R:Right, N:None, U:U-Turn, S:Stay\n\n`;
+                        rulesString += JSON.stringify(parsedRules, null, 2);
+                        rulesEditor.textContent = rulesString;
+                        applyBtn.disabled = false;
+                        if (discardBtn) discardBtn.disabled = false;
+                        if (presetSelect) presetSelect.value = 'custom';
+                    } catch (error) {
+                        alert(`Failed to load rule: ${error.message}`);
+                    }
+                };
+                reader.onerror = (e) => {
+                    alert("An error occurred while trying to read the file.");
+                };
+                reader.readAsText(file);
+            });
+            document.body.appendChild(fileInput);
+            fileInput.click();
+            document.body.removeChild(fileInput);
+        });
+    }
+    if (discardBtn) {
+        discardBtn.addEventListener('click', () => {
+            if (Object.keys(lastAppliedState).length === 0) {
+                if (applyBtn) applyBtn.disabled = true;
+                if (discardBtn) discardBtn.disabled = true;
+                return;
+            }
+            if (antCountInput) antCountInput.value = lastAppliedState.antCount;
+            if (startPositionSelect) startPositionSelect.value = lastAppliedState.startPosition;
+            if (startDirectionSelect) startDirectionSelect.value = lastAppliedState.startDirection;
+            if (possibleStatesInput) possibleStatesInput.value = lastAppliedState.maxStates;
+            if (possibleColorsInput) possibleColorsInput.value = lastAppliedState.maxColors;
+            if (individualRulesCheck) individualRulesCheck.checked = lastAppliedState.individualChecked;
+            if (rulesDisplayPre) rulesDisplayPre.textContent = lastAppliedState.rulesText;
+            if (antCountInput && rulesDisplayContainer && individualRulesContainer && individualRulesCheck && rulesDisplayPre) {
+                updateIndividualRulesVisibility(
+                    parseInt(lastAppliedState.antCount, 10) || 0,
+                    rulesDisplayContainer,
+                    individualRulesContainer,
+                    individualRulesCheck,
+                    rulesDisplayPre
+                );
+            }
+            if (applyBtn) applyBtn.disabled = true;
+            if (discardBtn) discardBtn.disabled = true;
+        });
+    }
+
+    function loadPresetRule(presetValue) {
+        const rulesEditor = document.getElementById('rulesDisplay');
+        const applyBtn = document.getElementById('applyBtn');
+        const discardBtn = document.getElementById('discardBtn');
+        if (!rulesEditor || !applyBtn || !discardBtn) return;
+        if (presetValue === 'custom') {
+            return;
+        }
+        const selectedPreset = presetDefinitions[presetValue];
+        if (selectedPreset) {
+            const presetRules = selectedPreset.rules;
+            const presetName = selectedPreset.name;
+            try {
+                const numStates = Object.keys(presetRules).length;
+                const numColors = presetRules[0] ? presetRules[0].length : 0;
+                let rulesString = `// Preset: ${presetName}\n`;
+                rulesString += `// States: ${numStates}\n`;
+                rulesString += `// Colors: ${numColors}\n`;
+                rulesString += `// Moves: L:Left, R:Right, N:None, U:U-Turn, S:Stay\n\n`;
+                rulesString += JSON.stringify(presetRules, null, 2);
+                rulesEditor.textContent = rulesString;
+                applyBtn.disabled = false;
+                discardBtn.disabled = false;
+            } catch (error) {
+                alert(`Failed to load preset '${presetName}': ${error.message}`);
+            }
+        }
+    }
+
+    if (presetSelect) {
+        presetSelect.addEventListener('change', (event) => {
+            loadPresetRule(event.target.value);
+        });
     }
     initSimulation(false, undefined, undefined, true);
+    loadPresetRule(presetSelect.value);
+    if (applyBtn) applyBtn.disabled = true;
+    if (discardBtn) discardBtn.disabled = true;
 });
 
 window.addEventListener('resize', resizeCanvas);
@@ -852,14 +1141,12 @@ function startRenderLoop() {
     if (renderRequestId) return;
     renderRequestId = requestAnimationFrame(renderLoop);
 }
-
 function stopRenderLoop() {
     if (renderRequestId) {
         cancelAnimationFrame(renderRequestId);
         renderRequestId = null;
     }
 }
-
 function calculateSimDelay(targetStepsPerSec) {
     if (targetStepsPerSec <= 0) return 10000;
     const delay = 1000 / targetStepsPerSec;

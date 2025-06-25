@@ -6,11 +6,6 @@ body {
 
 canvas {
     display: block;
-    width: 100vw;
-    height: 100vh;
-    position: absolute;
-    top: 0;
-    left: 0;
 }
 
 #controlPanel {
@@ -24,9 +19,9 @@ canvas {
     font-family: sans-serif;
     display: flex;
     flex-direction: column;
-    min-width: 280px;
+    min-width: 320px;
     transition: min-height 0.3s ease, padding 0.3s ease, min-width 0.3s ease;
-    gap: 10px;
+    gap: 5px;
 }
 
 .panel-header {
@@ -59,6 +54,12 @@ canvas {
     min-width: auto;
     min-height: auto;
     gap: 0;
+    display: block !important;
+    margin-left: 0;
+    padding: 5px;
+    outline: 1px solid #ccc;
+    outline-offset: 2px;
+    border-radius: 3px;
 }
 
 #controlPanel.minimized .panel-content {
@@ -85,8 +86,9 @@ canvas {
     line-height: 1;
     min-width: 36px;
     text-align: center;
-        transition: background-color 0.1s ease, transform 0.05s ease;
+    transition: background-color 0.1s ease, transform 0.05s ease;
 }
+
 
 #controlPanel button:not(:disabled):hover {
     background-color: #686868;
@@ -116,6 +118,27 @@ canvas {
 #controlPanel #applyBtn:not(:disabled):active {
     background-color: #8d8;
     transform: translateY(1px); 
+}
+
+#controlPanel #discardBtn:not(:disabled) {
+    background-color: #c55;
+    color: white;
+}
+
+#controlPanel #discardBtn:not(:disabled):hover {
+    background-color: #e77;
+}
+
+#controlPanel #discardBtn:not(:disabled):active {
+    background-color: #f88;
+    transform: translateY(1px);
+}
+
+#controlPanel #discardBtn:disabled {
+    background-color: #444;
+    color: #888;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .button-group {
@@ -151,13 +174,11 @@ canvas {
     text-align: right;
     font-weight: bold;
 }
+
 .rules-display-container {
     margin-top: 10px;
 }
 
-.rules-display-container label {
-    margin-right: 0;
-}
 .rule-label-container {
     display: flex;
     align-items: center;
@@ -165,21 +186,36 @@ canvas {
     margin-bottom: 3px;
 }
 
-
-#editRuleBtn {
-    background: none;
-    border: none;
+#editRuleBtn,
+#saveRuleBtn,
+#loadRuleBtn {
+    background: none !important;
+    border: none !important;
     color: #ccc;
-    padding: 0;
-    margin: 0;
+    padding: 0 !important;
+    margin: 0 0 0 4px !important;
     font-size: 1em;
     cursor: pointer;
     line-height: 1;
     vertical-align: middle;
+    transition: color 0.1s ease;
+    box-shadow: none !important;
 }
-#editRuleBtn:hover {
-    color: white;
+#controlPanel .panel-content #editRuleBtn:hover,
+#controlPanel .panel-content #saveRuleBtn:hover,
+#controlPanel .panel-content #loadRuleBtn:hover {
+    color: #aaa;
 }
+#controlPanel .panel-content #editRuleBtn:active,
+#controlPanel .panel-content #saveRuleBtn:active,
+#controlPanel .panel-content #loadRuleBtn:active {
+    color: rgb(128, 128, 128);
+}
+
+.rules-display-container label {
+    margin-right: 0;
+}
+
 #rulesDisplay {
     width: 250px;
     max-width: 250px;
@@ -195,6 +231,11 @@ canvas {
     overflow-y: auto;
     color: #ddd;
     outline: none;
+    margin: 12px 0;
+}
+
+.preset-container {
+    margin-top: 8px;
 }
 
 #rulesDisplay:focus {
@@ -217,6 +258,7 @@ canvas {
     margin-top: 10px;
     justify-content: flex-start;
 }
+
 .panel-title {
     text-align: center;
     margin: 0 0 10px 0;
@@ -224,22 +266,34 @@ canvas {
     font-weight: bold;
     color: #eee;
 }
+
 .hidden {
     display: none !important;
-
 }
+
+.input-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
 .individual-rules-container {
     margin-top: 10px;
     margin-bottom: 3px;
     justify-content: flex-start;
     gap: 5px;
 }
-.input-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8;
+
+.input-container input[type="number"] {
+    width: 60px;
+    padding: 3px 5px;
+    background-color: #222;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 3px;
 }
+
 .input-container select {
     padding: 3px 5px;
     background-color: #222;
@@ -248,17 +302,9 @@ canvas {
     border-radius: 3px;
     flex-grow: 1;
 }
+
 .control-separator {
     border: none;
     border-top: 1px solid #555;
     margin: 12px 0;
-}
-
-.input-container input[type="number"] {
-    width: 60px; 
-    padding: 3px 5px;
-    background-color: #222;
-    color: white;
-    border: 1px solid #555;
-    border-radius: 3px;
 }

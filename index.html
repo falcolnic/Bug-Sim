@@ -4,18 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Langton's Ant</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <canvas id="bugCanvas"></canvas>
-
-    <div id="controlPanel">
+    <canvas id="antCanvas"></canvas>
+    <div id="controlPanel" class="minimized">
         <div class="panel-header">
             <button id="minimizeBtn" title="Minimize Panel">−</button>
-            <button id="maximizeBtn" title="Maximize Panel">□</button>
+            <button id="maximizeBtn" title="Maximize Panel">⚙</button>
         </div>
         <div class="panel-content">
-            <h3 class="panel-title">Turmites</h3>
+            <h3 class="panel-title">Langton's Ant Colony</h3>
             <div class="input-container ant-count-container">
                 <label for="antCountInput">Ants:</label>
                 <input type="number" id="antCountInput" min="1" max="1024" value="1" title="Number of ants (1-1024)">
@@ -28,28 +27,59 @@
                 <div class="rule-label-container">
                     <label for="rulesDisplay">Rule:</label>
                     <button id="editRuleBtn" title="Edit Rule">✎</button>
+                    <button id="saveRuleBtn" title="Save Rule">⭳</button>
+                    <button id="loadRuleBtn" title="Load Rule">⭱</button>
                 </div>
-                <pre id="rulesDisplay" class="hidden" contenteditable="true" spellcheck="false"></pre>
+                <pre id="rulesDisplay" contenteditable="true" spellcheck="false" class="hidden"></pre>
+                <div class="input-container preset-container">
+                    <label for="presetSelect">Presets:</label>
+                    <select id="presetSelect">
+                        <option value="langtons">Langton's Ant</option>
+                        <option value="constructor">Constructor</option>
+                        <option value="symmetrical">Symmetrical</option>
+                        <option value="snowflake">Snowflake</option>
+                        <option value="archimedesSpiral">Archimedes Spiral</option>
+                        <option value="logarithmicSpiral">Logarithmic Spiral</option>
+                        <option value="squareFiller">Square Filler</option>
+                        <option value="simpleTuringMachine">Simple Turing Machine</option>
+                        <option value="busyBeaver3">Busy Beaver 3</option>
+                        <option value="busyBeaver4">Busy Beaver 4</option>
+                        <option value="busyBeaver5">Busy Beaver 5</option>
+                        <option value="custom" selected>Custom</option>
+                    </select>
+                </div>
             </div>
             <div class="input-container start-position-container">
-                <label for="startPositionSelect">Start Pos:</label>
+                <label for="startPositionSelect">Start Position:</label>
                 <select id="startPositionSelect" title="Ant starting positions">
                     <option value="center" selected>Center</option>
                     <option value="random">Random</option>
                     <option value="grid">Grid</option>
+                    <option value="row">Row</option>
+                </select>
+            </div>
+            <div class="input-container start-direction-container">
+                <label for="startDirectionSelect">Start Direction:</label>
+                <select id="startDirectionSelect" title="Ant starting directions">
+                    <option value="0">Up</option> <!-- N -->
+                    <option value="1" selected>Right</option> <!-- E -->
+                    <option value="2">Down</option> <!-- S -->
+                    <option value="3">Left</option> <!-- W -->
+                    <option value="random">Random</option>
                 </select>
             </div>
             <div class="input-container random-params-container">
                 <label for="possibleStatesInput">Max States:</label>
-                <input type="number" id="possibleStatesInput" min="1" max="100" value="5" title="Max states for random rules (1-100)">
+                <input type="number" id="possibleStatesInput" min="1" max="1000" value="5" title="Max states for random rules (1-1000)">
             </div>
             <div class="input-container random-params-container">
                 <label for="possibleColorsInput">Max Colors:</label>
-                <input type="number" id="possibleColorsInput" min="2" max="10" value="5" title="Max colors for random rules (2-10)">
+                <input type="number" id="possibleColorsInput" min="2" max="12" value="5" title="Max colors for random rules (2-12)">
             </div>
             <div class="button-group rule-actions">
-                <button id="randomizeBtn" title="Randomize Rules (R)">Randomize</button>
-                <button id="applyBtn" title="Apply Ruleset Changes" disabled>Apply Changes</button>
+                <button id="randomizeBtn" title="Randomize Rules (F)">Randomize</button>
+                <button id="applyBtn" title="Apply Changes" disabled>Apply</button>
+                <button id="discardBtn" title="Discard Unapplied Changes" disabled>Discard</button>
             </div>
             <hr class="control-separator">
             <div class="slider-container">
@@ -59,12 +89,13 @@
             </div>
             <div class="button-group main-actions">
                 <button id="startStopBtn" title="Pause/Play (Space)">❚❚</button>
-                <button id="resetBtn" title="Reset Simulation">↺</button>
+                <button id="resetBtn" title="Reset Simulation (R)">↺</button>
                 <button id="resetViewBtn" title="Reset View">⛶</button>
             </div>
         </div>
     </div>
 
+    <script src="presets.js"></script>
     <script src="script.js"></script>
 </body>
 </html> 
